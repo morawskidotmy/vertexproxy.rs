@@ -108,8 +108,8 @@ pub async fn chat_completions(
         )
     }).unwrap_or_else(|| "no-messages".to_string());
     tracing::info!(
-        "chat request: model={} stream={} roles={:?} tools={} last=[{}]",
-        model, req.stream, raw_roles, req.tools.as_ref().map(|t| t.len()).unwrap_or(0), last_info
+        "chat request: model={} stream={} reasoning_effort={:?} thinking={:?} thinking_budget={:?} roles={:?} tools={} last=[{}]",
+        model, req.stream, req.reasoning_effort, req.thinking, req.thinking_budget, raw_roles, req.tools.as_ref().map(|t| t.len()).unwrap_or(0), last_info
     );
 
     let vertex_req = match build_vertex_request(&req) {

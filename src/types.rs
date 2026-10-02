@@ -172,6 +172,8 @@ pub struct VertexGenerationConfig {
 pub struct VertexThinkingConfig {
     #[serde(rename = "thinkingBudget")]
     pub thinking_budget: i32,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "includeThoughts")]
+    pub include_thoughts: Option<bool>,
 }
 
 // Vertex responses

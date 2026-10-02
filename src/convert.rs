@@ -636,13 +636,29 @@ pub fn build_vertex_request(req: &ChatCompletionRequest) -> Result<VertexRequest
                 None // Pro models reject 0 with HTTP 400
             } else {
                 budget = 128;
-                Some(VertexThinkingConfig { thinking_budget: budget })
+                Some(VertexThinkingConfig {
+                    thinking_budget: budget,
+                    include_thoughts: Some(true),
+                })
             }
+        } else if budget > 0 {
+            Some(VertexThinkingConfig {
+                thinking_budget: budget,
+                include_thoughts: Some(true),
+            })
         } else {
-            Some(VertexThinkingConfig { thinking_budget: budget })
+            Some(VertexThinkingConfig {
+                thinking_budget: 0,
+                include_thoughts: None,
+            })
         }
     } else {
-        None
+        // Dynamic thinking on Gemini models:
+        // Vertex AI requires includeThoughts: true in thinkingConfig to actually emit the thoughts!
+        Some(VertexThinkingConfig {
+            thinking_budget: -1,
+            include_thoughts: Some(true),
+        })
     };
 
     let generation_config = if req.temperature.is_some()

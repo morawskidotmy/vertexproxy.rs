@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ChatCompletionRequest {
     pub model: String,
     pub messages: Vec<OpenAiMessage>,
@@ -20,9 +20,15 @@ pub struct ChatCompletionRequest {
     pub tools: Option<Vec<OpenAiTool>>,
     #[serde(default)]
     pub tool_choice: Option<serde_json::Value>,
+    #[serde(default)]
+    pub reasoning_effort: Option<String>,
+    #[serde(default)]
+    pub thinking: Option<serde_json::Value>,
+    #[serde(default)]
+    pub thinking_budget: Option<i32>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum StopCondition {
     Single(String),
@@ -158,6 +164,14 @@ pub struct VertexGenerationConfig {
     pub top_p: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none", rename = "stopSequences")]
     pub stop_sequences: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "thinkingConfig")]
+    pub thinking_config: Option<VertexThinkingConfig>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VertexThinkingConfig {
+    #[serde(rename = "thinkingBudget")]
+    pub thinking_budget: i32,
 }
 
 // Vertex responses
@@ -194,6 +208,8 @@ pub struct VertexContentCandidate {
 pub struct VertexPartResponse {
     #[serde(default)]
     pub text: Option<String>,
+    #[serde(default)]
+    pub thought: Option<bool>,
     #[serde(default, rename = "thoughtSignature")]
     pub thought_signature: Option<String>,
     #[serde(default, rename = "functionCall")]
@@ -287,6 +303,8 @@ pub struct OpenAiChunkDelta {
     pub role: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_calls: Option<Vec<OpenAiChunkToolCall>>,
 }

@@ -20,6 +20,9 @@ existing OpenAI clients work with Vertex models without changes.
 - 🧠 **Gemini 3 thinking** - thought-signature round-trip via tool-call IDs
 - 🖼️ **Image support** - base64 data-URL images as inline data
 - 🔑 **OAuth auth** - gcloud ADC with automatic token refresh
+- 📡 **Auto region selection** - probes Vertex locations every 60s and picks the
+  lowest-latency region that actually serves the model (fallback to `global` on
+  404)
 
 ## Quick start
 
@@ -60,10 +63,46 @@ curl http://127.0.0.1:8000/v1/chat/completions \
 | --- | --- | --- |
 | `PORT` / `VERTEX_PROXY_PORT` | `8000` | Port to listen on |
 | `VERTEX_PROXY_HOST` | `127.0.0.1` | Bind address |
-| `VERTEX_LOCATION` | `global` | Vertex AI location (e.g. `global`, `europe-west1`) |
+| `VERTEX_LOCATION` | `unset` | Pin a region manually; when unset the proxy auto-selects the lowest-latency region every 60s |
 | `VERTEX_PROJECT_ID` | ADC project | Google Cloud project ID |
 | `GOOGLE_APPLICATION_CREDENTIALS` | `~/.config/gcloud/application_default_credentials.json` | Path to ADC file |
 | `RUST_LOG` | `vertex_proxy=info,tower_http=info` | Log filter |
+| `VERTEX_DEEPSEEK_ENDPOINT_ID` | _(unset)_ | Endpoint ID of the DeepSeek model deployed from Model Garden |
+| `VERTEX_DEEPSEEK_LOCATION` | `us-central1` | Region of the DeepSeek endpoint |
+| `VERTEX_DEEPSEEK_MODEL` | `deepseek-v4.1-flash` | Served model name inside the vLLM deployment |
+
+## DeepSeek (Model Garden) support
+
+`deepseek-v4.1-flash` is passed through — without any format conversion — to the
+OpenAI-compatible `/chat/completions` path of the endpoint you deploy from
+[Model Garden](https://cloud.google.com/model-garden) (`gcloud ai model-garden models deploy`
+or the Python SDK). vLLM already speaks OpenAI, so tool calls, image inputs,
+`reasoning_effort`, and streaming work unchanged.
+
+1. Deploy the model to an endpoint (requires GPU quota — e.g. `a4-highgpu-8g`):
+   ```sh
+   gcloud ai model-garden models deploy \
+     --model=deepseek-ai/deepseek-v4.1@deepseek-v4.1-flash \
+     --project=YOUR_PROJECT --region=us-central1 --accept-eula
+   ```
+2. Point the proxy at that endpoint:
+   ```sh
+   export VERTEX_DEEPSEEK_ENDPOINT_ID=<endpoint-id-from-URL>
+   export VERTEX_DEEPSEEK_LOCATION=us-central1   # region of the endpoint
+   ```
+3. Use it like any OpenAI model:
+   ```sh
+   curl http://127.0.0.1:8000/v1/chat/completions \
+     -H 'Content-Type: application/json' \
+     -d '{"model":"deepseek-v4.1-flash",
+          "messages":[{"role":"user","content":"Explain quicksort."}]}'
+   ```
+
+> [!NOTE]
+> The `deepseek-ai/` prefix is stripped from model names too, so
+> `deepseek-ai/deepseek-v4.1-flash` and `deepseek-v4.1-flash` are equivalent.
+> Requests for a DeepSeek model return `503` until `VERTEX_DEEPSEEK_ENDPOINT_ID`
+> is set.
 
 ## API
 

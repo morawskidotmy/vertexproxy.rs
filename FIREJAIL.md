@@ -1,1 +1,0 @@
-/home/dj/.agents/firejail/FIREJAIL.md
